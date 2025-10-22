@@ -1,16 +1,17 @@
 import java.util.*;
+
 class Student {
-    int id;
+    String id;     // Changed from int to String
     String name;
 
-    public Student(int id, String name) {
+    public Student(String id, String name) {
         this.id = id;
         this.name = name;
     }
 
     @Override
     public String toString() {
-        return name + " (ID: " + id + ")";
+        return name + " (Reg: " + id + ")";
     }
 }
 
@@ -108,17 +109,15 @@ public class CourseAllocationSystem {
 
             switch (choice) {
                 case 1 -> {
-                    System.out.print("Enter Student ID: ");
-                    int sid = sc.nextInt();
-                    sc.nextLine();
+                    System.out.print("Enter Student Registration Number: ");
+                    String sid = sc.nextLine();
                     System.out.print("Enter Course Code: ");
                     String ccode = sc.nextLine();
                     enrollStudentInCourse(sid, ccode);
                 }
                 case 2 -> {
-                    System.out.print("Enter Student ID: ");
-                    int sid = sc.nextInt();
-                    sc.nextLine();
+                    System.out.print("Enter Student Registration Number: ");
+                    String sid = sc.nextLine();
                     System.out.print("Enter Course Code: ");
                     String ccode = sc.nextLine();
                     dropStudentFromCourse(sid, ccode);
@@ -139,31 +138,222 @@ public class CourseAllocationSystem {
     }
 
     static void addSampleStudents() {
-        students.add(new Student(1, "Alice"));
-        students.add(new Student(2, "Bob"));
-        students.add(new Student(3, "Charlie"));
-        students.add(new Student(4, "Diana"));
+        students.add(new Student("CIT206/119926/24", "Vebastian"));
+        students.add(new Student("CIT206/119927/24", "Alice"));
+        students.add(new Student("CIT206/119928/24", "Bob"));
+        students.add(new Student("CIT206/119929/24", "Diana"));
     }
 
-    static void enrollStudentInCourse(int studentId, String courseCode) {
+    static void enrollStudentInCourse(String studentId, String courseCode) {
         Student student = findStudent(studentId);
-        Course course = courseCatalog.get(courseCode);
+        Course course = courseCatalog.get(courseCode.toUpperCase());
+
 
         if (student != null && course != null) course.enrollStudent(student);
-        else System.out.println("Invalid student ID or course code.");
+        else System.out.println("Invalid registration number or course code.");
     }
 
-    static void dropStudentFromCourse(int studentId, String courseCode) {
+    static void dropStudentFromCourse(String studentId, String courseCode) {
         Student student = findStudent(studentId);
         Course course = courseCatalog.get(courseCode);
 
         if (student != null && course != null) course.dropStudent(student);
-        else System.out.println("Invalid student ID or course code.");
+        else System.out.println("Invalid registration number or course code.");
     }
 
-    static Student findStudent(int id) {
+    static Student findStudent(String id) {
         for (Student s : students)
-            if (s.id == id) return s;
+            if (s.id.equalsIgnoreCase(id))
+                return s;
+        return null;
+    }
+
+    static void showAllCourses() {
+        for (Course c : courseCatalog.values()) c.showEnrolled();
+    }
+
+    static void generateSchedule() {
+        Random rand = new Random();
+        for (Course c : courseCatalog.values()) {
+            String day = days[rand.nextInt(days.length)];
+            String time = times[rand.nextInt(times.length)];
+            String room = rooms[rand.nextInt(rooms.length)];
+            schedules.add(new Schedule(c.code, day, time, room));
+        }
+    }
+
+    static void showSchedule() {
+        System.out.println("\n=== COURSE SCHEDULE ===");
+        for (Schedule s : schedules) System.out.println(s);
+    }
+}
+import java.util.*;
+
+class Student {
+    String id;     // Changed from int to String
+    String name;
+
+    public Student(String id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return name + " (Reg: " + id + ")";
+    }
+}
+
+class Course {
+    String code;
+    String name;
+    int capacity;
+    Queue<Student> enrolledStudents;
+    Queue<Student> waitlist;
+
+    public Course(String code, String name, int capacity) {
+        this.code = code;
+        this.name = name;
+        this.capacity = capacity;
+        this.enrolledStudents = new LinkedList<>();
+        this.waitlist = new LinkedList<>();
+    }
+
+    public void enrollStudent(Student student) {
+        if (enrolledStudents.size() < capacity) {
+            enrolledStudents.offer(student);
+            System.out.println(student.name + " successfully enrolled in " + name);
+        } else {
+            waitlist.offer(student);
+            System.out.println("Course full! " + student.name + " added to waitlist for " + name);
+        }
+    }
+
+    public void dropStudent(Student student) {
+        if (enrolledStudents.remove(student)) {
+            System.out.println(student.name + " dropped from " + name);
+            if (!waitlist.isEmpty()) {
+                Student next = waitlist.poll();
+                enrolledStudents.offer(next);
+                System.out.println(next.name + " moved from waitlist to enrolled list.");
+            }
+        } else {
+            System.out.println(student.name + " was not enrolled in " + name);
+        }
+    }
+
+    public void showEnrolled() {
+        System.out.println("Course: " + name + " (" + code + ")");
+        System.out.println("Enrolled Students: " + enrolledStudents);
+        System.out.println("Waitlist: " + waitlist);
+        System.out.println();
+    }
+}
+
+class Schedule {
+    String courseCode;
+    String day;
+    String timeSlot;
+    String room;
+
+    public Schedule(String courseCode, String day, String timeSlot, String room) {
+        this.courseCode = courseCode;
+        this.day = day;
+        this.timeSlot = timeSlot;
+        this.room = room;
+    }
+
+    @Override
+    public String toString() {
+        return courseCode + " → " + day + " " + timeSlot + " (" + room + ")";
+    }
+}
+
+public class CourseAllocationSystem {
+    static HashMap<String, Course> courseCatalog = new HashMap<>();
+    static ArrayList<Student> students = new ArrayList<>();
+    static ArrayList<Schedule> schedules = new ArrayList<>();
+
+    static String[] days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
+    static String[] times = {"8:00-10:00 AM", "10:00-12:00 PM", "1:00-3:00 PM", "3:00-5:00 PM"};
+    static String[] rooms = {"TB 1", "TB 2", "Theater 3", "Room B"};
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        addSampleCourses();
+        addSampleStudents();
+        generateSchedule();
+
+        int choice;
+        do {
+            System.out.println("\n=== COURSE ALLOCATION & SCHEDULING SYSTEM ===");
+            System.out.println("1. Enroll Student in Course");
+            System.out.println("2. Drop Student from Course");
+            System.out.println("3. Show Course Enrollments");
+            System.out.println("4. Show Schedule");
+            System.out.println("5. Exit");
+            System.out.print("Enter choice: ");
+            choice = sc.nextInt();
+            sc.nextLine();
+
+            switch (choice) {
+                case 1 -> {
+                    System.out.print("Enter Student Registration Number: ");
+                    String sid = sc.nextLine();
+                    System.out.print("Enter Course Code: ");
+                    String ccode = sc.nextLine();
+                    enrollStudentInCourse(sid, ccode);
+                }
+                case 2 -> {
+                    System.out.print("Enter Student Registration Number: ");
+                    String sid = sc.nextLine();
+                    System.out.print("Enter Course Code: ");
+                    String ccode = sc.nextLine();
+                    dropStudentFromCourse(sid, ccode);
+                }
+                case 3 -> showAllCourses();
+                case 4 -> showSchedule();
+                case 5 -> System.out.println("Exiting system...");
+                default -> System.out.println("Invalid choice!");
+            }
+        } while (choice != 5);
+        sc.close();
+    }
+
+    static void addSampleCourses() {
+        courseCatalog.put("CIT101", new Course("CIT101", "Intro to Programming", 2));
+        courseCatalog.put("CIT202", new Course("CIT202", "Data Structures", 2));
+        courseCatalog.put("CIT303", new Course("CIT303", "Database Systems", 2));
+    }
+
+    static void addSampleStudents() {
+        students.add(new Student("CIT206/119926/24", "Vebastian"));
+        students.add(new Student("CIT206/119927/24", "Alice"));
+        students.add(new Student("CIT206/119928/24", "Bob"));
+        students.add(new Student("CIT206/119929/24", "Diana"));
+    }
+
+    static void enrollStudentInCourse(String studentId, String courseCode) {
+        Student student = findStudent(studentId);
+        Course course = courseCatalog.get(courseCode.toUpperCase());
+
+
+        if (student != null && course != null) course.enrollStudent(student);
+        else System.out.println("Invalid registration number or course code.");
+    }
+
+    static void dropStudentFromCourse(String studentId, String courseCode) {
+        Student student = findStudent(studentId);
+        Course course = courseCatalog.get(courseCode);
+
+        if (student != null && course != null) course.dropStudent(student);
+        else System.out.println("Invalid registration number or course code.");
+    }
+
+    static Student findStudent(String id) {
+        for (Student s : students)
+            if (s.id.equalsIgnoreCase(id))
+                return s;
         return null;
     }
 
